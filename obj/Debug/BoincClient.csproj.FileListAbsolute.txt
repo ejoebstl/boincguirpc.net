@@ -1,5 +1,0 @@
-D:\Schuldateien\WS 12 13\sGrid\Implementation\sGrid\BoincCore\bin\Debug\BoincCore.dll
-D:\Schuldateien\WS 12 13\sGrid\Implementation\sGrid\BoincCore\bin\Debug\BoincCore.pdb
-D:\Schuldateien\WS 12 13\sGrid\Implementation\sGrid\BoincCore\obj\Debug\ResolveAssemblyReference.cache
-D:\Schuldateien\WS 12 13\sGrid\Implementation\sGrid\BoincCore\obj\Debug\BoincCore.dll
-D:\Schuldateien\WS 12 13\sGrid\Implementation\sGrid\BoincCore\obj\Debug\BoincCore.pdb
