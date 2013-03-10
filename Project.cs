@@ -149,7 +149,7 @@ namespace Boinc
 
 
         /// <summary>
-        /// Detaches the Boinc client from this project.
+        /// Allows more work for this project. 
         /// </summary>
         public void AllowMoreWork()
         {
@@ -157,7 +157,7 @@ namespace Boinc
         } 
         
         /// <summary>
-        /// Detaches the Boinc client from this project.
+        /// Disallows more work for this project. 
         /// </summary>
         public void DisallowMoreWork()
         {

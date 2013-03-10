@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Boinc</RootNamespace>
-    <AssemblyName>BoincCore</AssemblyName>
+    <AssemblyName>BoincGuiRpc.Net</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>
@@ -27,7 +27,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\BoincCore.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\BoincGuiRpc.Net.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BoincClient.cs" />
+    <Compile Include="BoincWatcher.cs" />
     <Compile Include="BoincHelperExtensions.cs" />
     <Compile Include="FilterStream.cs" />
     <Compile Include="Preferences.cs" />

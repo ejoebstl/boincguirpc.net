@@ -90,15 +90,18 @@ namespace Boinc
         private const string AuthorizedTag = "authorized";
 
         private const string SetGlobalPrefsOverrideTag = "set_global_prefs_override";
+        private const string ReadGlobalPrefsOverrideTag = "read_global_prefs_override";
         private const string RunOnBatteriesTag = "run_on_batteries";
-        private const string CpuCountPercentageLimitTag = "max_ncpus_pct";
+        private const string CpuCountLimitTag = "max_cpus";
+        private const string CpuCountPercentageTag = "max_ncpus_pct";
         private const string DiskMaxUsedTag = "disk_max_used_gb";
         private const string RunGpuIfUserIsActiveTag = "run_gpu_if_user_active";
         private const string CpuUsageLimitTag = "cpu_usage_limit";
 
         private const string SetGlobalPrefsOverrideReplyTag = "set_global_prefs_override_reply";
-        
+
         private const string GetGlobalPrefsOverrideTag = "get_global_prefs_override";
+        private const string GlobalPrefsTag = "global_preferences";
 
         private const string GetProxySettingsTag = "get_proxy_settings";
         private const string ProxyInfoTag = "proxy_info";
@@ -187,6 +190,19 @@ namespace Boinc
         private const string guiRpcAuthFile = "gui_rpc_auth.cfg";
 
         /// <summary>
+        /// Gets or sets the location of the Boinc main executable (boinc.exe). This property is
+        /// only relevant when Boinc is automatically started, or StartClient() or IsRunning is called. 
+        /// </summary>
+        public static string BoincExecutableLocation {get; set;}
+
+        /// <summary>
+        /// Gets or seths the location of the boinc gui rpc authentication file, which contains the password.
+        /// This property is only relevant when the passwort is automatically retreived. 
+        /// </summary>
+        public static string BoincGuiRpcAuthFileLocation { get; set; }
+
+
+        /// <summary>
         /// An empty delegate, so we can use Lambda patterns for XML parsing
         /// </summary>
         private delegate void EmptyDelegate();
@@ -216,61 +232,25 @@ namespace Boinc
         {
             get
             {
-                //Check if Boinc is already running.
-                //We can do this by fetching a list of all processes with the name Boinc and then searching for 
-                //a process which has the boinc executable loaded as it's main module.
-                Process[] processList = Process.GetProcessesByName("boinc");
+                Process boinc = GetBoincProcess();
 
-                string programFilesDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-                string boincPath = Path.Combine(Path.Combine(programFilesDir, boincDir), boincExecutable);
-
-                bool boincIsRunning = false;
-
-                foreach (Process process in processList)
-                {
-                    try
-                    {
-                        //If we can find such a process, we can assume that boinc has already started. 
-                        if (process.MainModule.FileName == boincPath)
-                        {
-                            boincIsRunning = true;
-                            break;
-                        }
-                    }
-                    catch (Win32Exception ex)
-                    {
-                        //Used to silently catch Win32-Exceptions, which can happen when accessing other processes.
-                    }
-                }
-
-                return boincIsRunning;
+                return boinc != null;
             }
         }
 
         /// <summary>
-        /// Starts Boinc on the local host.  
+        /// Static constructor, used to initialize BoincGuiRpcAuthFileLocation and BoincExecutableLocation.
         /// </summary>
-        /// <remarks>
-        /// This method throws an exception if boinc is already started. 
-        /// </remarks>
-        public void StartClient()
+        static BoincClient()
         {
-            if (BoincIsRunning)
-            {
-                throw new InvalidOperationException("Boinc is already running.");
-            }
 
+            //The password should be located in a file in the application data directory.
+            string appDataDir = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData); 
+            BoincGuiRpcAuthFileLocation =  Path.Combine(appDataDir, Path.Combine(boincDir, guiRpcAuthFile));
+
+            //The executable is located in the program files directory by default. 
             string programFilesDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string boincPath = Path.Combine(Path.Combine(programFilesDir, boincDir), boincExecutable);
-
-            //If Boinc is not running, we should start it, using parameters which indicate that our application
-            //is responsible for managing Boinc. 
-            ProcessStartInfo processStartInfo = new ProcessStartInfo(boincPath, " --allow_remote_gui_rpc --detach_console --launched_by_manager");
-
-            //The CLI-Window of Boinc should be supressed. 
-            processStartInfo.CreateNoWindow = true;
-
-            Process boinc = Process.Start(processStartInfo);
+            BoincExecutableLocation = Path.Combine(Path.Combine(programFilesDir, boincDir), boincExecutable);
         }
 
         /// <summary>
@@ -318,12 +298,7 @@ namespace Boinc
                 //Then try to load the password. 
                 try
                 {
-                    //The password should be located in a file in the application data directory.
-                    string appDataDir =
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData); //Path to the AllUsers ApplicationData directory
-
-                    this.password = File.ReadAllText(
-                        Path.Combine(appDataDir, Path.Combine(boincDir, guiRpcAuthFile)));
+                    this.password = File.ReadAllText(BoincGuiRpcAuthFileLocation);
                 }
                 catch (Exception ex)
                 {
@@ -343,7 +318,34 @@ namespace Boinc
         }
 
         /// <summary>
+        /// Starts Boinc on the local host.  
+        /// </summary>
+        /// <remarks>
+        /// This method throws an exception if boinc is already started. 
+        /// </remarks>
+        public void StartClient()
+        {
+            if (BoincIsRunning)
+            {
+                throw new InvalidOperationException("Boinc is already running.");
+            }
+
+            //If Boinc is not running, we should start it, using parameters which indicate that our application
+            //is responsible for managing Boinc. 
+            ProcessStartInfo processStartInfo = new ProcessStartInfo(BoincExecutableLocation, " --allow_remote_gui_rpc --detach_console --launched_by_manager");
+
+            //The CLI-Window of Boinc should be supressed. 
+            processStartInfo.CreateNoWindow = true;
+            processStartInfo.UseShellExecute = false;
+            processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+            Process boinc = Process.Start(processStartInfo);
+        }
+
+
+        /// <summary>
         /// Applies the given override preferences to Boinc.
+        /// <remarks>This function automatically calls RefreshPreferences()</remarks>
         /// </summary>
         /// <param name="prefs">The preferences to apply.</param>
         public void SetPreferences(Preferences prefs)
@@ -355,31 +357,37 @@ namespace Boinc
             {
                 WriteElement(SetGlobalPrefsOverrideTag, () =>
                 {
-                    WriteElement(RunOnBatteriesTag, () =>
+                    WriteElement(GlobalPrefsTag, () =>
                     {
-                        Write(prefs.RunOnBatteries ? "1" : "0");
-                    });
+                        WriteElement(RunOnBatteriesTag, () =>
+                        {
+                            Write(prefs.RunOnBatteries ? "1" : "0");
+                        });
 
-                    WriteElement(RunGpuIfUserIsActiveTag, () =>
-                    {
-                        Write(prefs.UseGpuIfUserIsActive ? "1" : "0");
-                    });
+                        WriteElement(RunGpuIfUserIsActiveTag, () =>
+                        {
+                            Write(prefs.UseGpuIfUserIsActive ? "1" : "0");
+                        });
 
-                    WriteElement(CpuUsageLimitTag, () =>
-                    {
-                        Write(((int)prefs.CpuUsageLimit).ToString());
-                    });
+                        WriteElement(CpuUsageLimitTag, () =>
+                        {
+                            Write(((int)prefs.CpuUsageLimit).ToString());
+                        });
 
-                    WriteElement(DiskMaxUsedTag, () =>
-                    {
-                        Write(prefs.DiskUsageLimit.ToString());
-                    });
+                        WriteElement(DiskMaxUsedTag, () =>
+                        {
+                            Write(prefs.DiskUsageLimit.ToString());
+                        });
 
-                    WriteElement(CpuCountPercentageLimitTag, () =>
-                    {
-                        //We have to take care about the processor count, since Boinc expects a percentage 
-                        //from us. 
-                        Write((prefs.CpuCountLimit * 100.0f / Environment.ProcessorCount).ToString());
+                        WriteElement(CpuCountLimitTag, () =>
+                        {
+                            Write((prefs.CpuCountLimit).ToString());
+                        });
+
+                        WriteElement(CpuCountPercentageTag, () =>
+                        {
+                            Write((prefs.CpuCountPercentage).ToString());
+                        });
                     });
                 });
             });
@@ -398,6 +406,26 @@ namespace Boinc
                     }, false);
                 });
             });
+
+            RefreshPreferences();
+        }
+
+        /// <summary>
+        /// Causes Boinc to re-read the local global preferences override file. 
+        /// </summary>
+        public void RefreshPreferences()
+        {
+            //Write the 
+            WriteRequest(() =>
+            {
+                WriteElement(ReadGlobalPrefsOverrideTag);
+            });
+
+             //Read Boinc's reply and ensure success. 
+            ReadReply(() =>
+            {
+                ReadElement(SuccessTag);
+            });
         }
 
         /// <summary>
@@ -414,7 +442,7 @@ namespace Boinc
             bool useGpu = true;
             bool runOnBattery = true;
             double cpuUsageLimit = 100;
-            double cpuCountPercentageLimit = 0;
+            int cpuCountLimit = 0;
             double diskUsageLimit = 0;
 
             //Get the global preferences
@@ -431,13 +459,13 @@ namespace Boinc
                         case RunGpuIfUserIsActiveTag: useGpu = ReadIntAndExitNode() == 1; break;
                         case CpuUsageLimitTag: cpuUsageLimit = ReadDoubleAndExitNode(); break;
                         case DiskMaxUsedTag: diskUsageLimit = ReadDoubleAndExitNode(); break;
-                        case CpuCountPercentageLimitTag: cpuCountPercentageLimit = ReadDoubleAndExitNode(); break;
+                        case CpuCountLimitTag: cpuCountLimit = ReadIntAndExitNode(); break;
                     }
                 }
             }, false);
 
 
-            return new Preferences(runOnBattery, useGpu, (float)cpuUsageLimit, (float)diskUsageLimit, (int)((cpuCountPercentageLimit * Environment.ProcessorCount) / 100));
+            return new Preferences(runOnBattery, useGpu, (float)cpuUsageLimit, (float)diskUsageLimit, (int)(cpuCountLimit));
         }
 
         /// <summary>
@@ -653,10 +681,20 @@ namespace Boinc
             {
                 throw new InvalidOperationException("The connection is already open");
             }
-         
-            //Create a new socket and streams. 
-            connection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            connection.Connect(host, port);
+
+            try
+            {
+
+                //Create a new socket and streams. 
+                connection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                connection.Connect(host, port);
+            }
+            catch
+            {
+                //Connect failed - throw.
+                connection = null;
+                throw;
+            }
 
             netStream = new NetworkStream(connection);
 
@@ -691,9 +729,17 @@ namespace Boinc
 
             reader = XmlReader.Create(filterStream, readerSettings);
 
-            //Perform and finish the authenticaiton. 
-            PerformAuth();
-
+            try
+            {
+                //Perform and finish the authenticaiton. 
+                PerformAuth();
+            }
+            catch
+            {
+                //Authentication was invalid - close. 
+                Close();
+                throw;
+            }
         }
 
         /// <summary>
@@ -1031,7 +1077,7 @@ namespace Boinc
                     case SignalTag: result.Signal = ReadIntAndExitNode(); break;
                     case StateTag: result.State = ReadIntAndExitNode(); break;
                     case VersionNumTag: result.VersionNumber = ReadIntAndExitNode(); break;
-                    case ActiveTaskStateTag: result.TaskState = ReadIntAndExitNode(); break;
+                    case ActiveTaskStateTag: result.TaskState = (TaskState)ReadIntAndExitNode(); break;
 
                     case CurrentCpuTimeTag: result.CurrentCpuTime = ReadTimespanAndExitNode(); break;
                     case ElapsedTimeTag: result.ElapsedTime = ReadTimespanAndExitNode(); break;
@@ -1124,11 +1170,56 @@ namespace Boinc
 
         /// <summary>
         /// Tells the Boinc application to quit. 
+        /// <param name="waitForExit">True, if the method should wait until the Boinc process exited, else, false.</param>
         /// </summary>
-        public void QuitClient()
+        public void QuitClient(bool waitForExit = true)
         {
             CheckConnection();
+
+            //Try to find the process to wait for, if applicable.
+            Process boinc = null;
+            if (waitForExit)
+            {
+                boinc = GetBoincProcess();
+            }
+
+            //Quit Boinc, close the connection and then wait for boinc to exit. 
             WriteRpc(QuitTag);
+            Close();
+
+            if (boinc != null)
+            {
+                boinc.WaitForExit();
+            }
+        }
+
+        /// <summary>
+        /// Gets the Boinc process.
+        /// </summary>
+        /// <returns>The Boinc process, or null, if no process was found.</returns>
+        private Process GetBoincProcess()
+        {
+            //Check if Boinc is already running.
+            //We can do this by fetching a list of all processes with the name Boinc and then searching for 
+            //a process which has the boinc executable loaded as it's main module.
+            Process[] processList = Process.GetProcessesByName("boinc");
+
+            foreach (Process process in processList)
+            {
+                try
+                {
+                    //If we can find such a process, we can assume that boinc has already started. 
+                    if (process.MainModule.FileName == BoincExecutableLocation)
+                    {
+                        return process;
+                    }
+                }
+                catch (Win32Exception)
+                {
+                    //Used to silently catch Win32-Exceptions, which can happen when accessing other processes.
+                }
+            }
+            return null;
         }
 
         /// <summary>

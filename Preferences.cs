@@ -46,6 +46,11 @@ namespace Boinc
         public int CpuCountLimit { get; private set; }
 
         /// <summary>
+        /// Gets a float indicating the maxmimum percentage of processor cores to use.
+        /// </summary>
+        public float CpuCountPercentage { get; private set; }
+
+        /// <summary>
         /// Creates a new instance of this class, storing the given parameters. 
         /// </summary>
         /// <param name="runOnBatteries">A bool indicating whether Boinc should run if the computer
@@ -54,7 +59,8 @@ namespace Boinc
         /// <param name="cpuUsageLimit">A float number indicating the cpu usage limit in percent.</param>
         /// <param name="diskUsageLimit">A float number indicating the maximum disk usage in gigabyte.</param>
         /// <param name="cpuCountLimit">An integer indicating the maxmimum count of processor cores to use.</param>
-        public Preferences(bool runOnBatteries, bool useGpuIfUserActive, float cpuUsageLimit, float diskUsageLimit, int cpuCountLimit)
+        /// <param name="cpuCountPercentage">The percentage of cores to use, or -1 to auto-calculate this percentage specific to the local host from cpuCountLimit.</param>
+        public Preferences(bool runOnBatteries, bool useGpuIfUserActive, float cpuUsageLimit, float diskUsageLimit, int cpuCountLimit, float cpuCountPercentage = -1)
         {
             if (cpuUsageLimit < 0 || cpuUsageLimit > 100)
             {
@@ -68,11 +74,23 @@ namespace Boinc
             {
                 throw new ArgumentException("Parameter cpuCountLimit must not be negative, since a negative cpu count cannot be enforced.");
             }
+
+            if (cpuCountPercentage == -1)
+            {
+                cpuCountPercentage = cpuCountLimit * 100.0F / Environment.ProcessorCount;
+            }
+
+            if (cpuCountPercentage < 0)
+            {
+                throw new ArgumentException("Parameter cpuCountPercentage must not be negative, since a negative cpu count cannot be enforced.");
+            }
+
             this.RunOnBatteries = runOnBatteries;
             this.UseGpuIfUserIsActive = useGpuIfUserActive;
             this.CpuUsageLimit = cpuUsageLimit;
             this.DiskUsageLimit = diskUsageLimit;
             this.CpuCountLimit = cpuCountLimit;
+            this.CpuCountPercentage = cpuCountPercentage;
         }
     }
 }
