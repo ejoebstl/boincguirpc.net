@@ -183,11 +183,11 @@ namespace Boinc
         /// <summary>
         /// The name of the boinc executable file
         /// </summary>
-        private const string boincExecutable = "boinc.exe"; 
+        public const string BoincExecutable = "boinc.exe"; 
         /// <summary>
         /// The name of the boinc gui rpc auth configuration file, which holds the password for rpc authentication
         /// </summary>
-        private const string guiRpcAuthFile = "gui_rpc_auth.cfg";
+        public const string GuiRpcAuthFile = "gui_rpc_auth.cfg";
 
         /// <summary>
         /// Gets or sets the location of the Boinc main executable (boinc.exe). This property is
@@ -200,6 +200,17 @@ namespace Boinc
         /// This property is only relevant when the passwort is automatically retreived. 
         /// </summary>
         public static string BoincGuiRpcAuthFileLocation { get; set; }
+
+        /// <summary>
+        /// Gets or sets a boolean which indicates whether boinc's command window should be hidden. 
+        /// </summary>
+        public static bool HideBoincWindow { get; set; }
+
+        /// <summary>
+        /// Gets or sets the working directory of Boinc. Null means default. 
+        /// </summary>
+        public static string BoincWorkingDirectory { get; set; }
+
 
 
         /// <summary>
@@ -243,14 +254,15 @@ namespace Boinc
         /// </summary>
         static BoincClient()
         {
-
             //The password should be located in a file in the application data directory.
             string appDataDir = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData); 
-            BoincGuiRpcAuthFileLocation =  Path.Combine(appDataDir, Path.Combine(boincDir, guiRpcAuthFile));
+            BoincGuiRpcAuthFileLocation =  Path.Combine(appDataDir, Path.Combine(boincDir, GuiRpcAuthFile));
 
             //The executable is located in the program files directory by default. 
             string programFilesDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            BoincExecutableLocation = Path.Combine(Path.Combine(programFilesDir, boincDir), boincExecutable);
+            BoincExecutableLocation = Path.Combine(Path.Combine(programFilesDir, boincDir), BoincExecutable);
+
+            HideBoincWindow = true;
         }
 
         /// <summary>
@@ -332,12 +344,30 @@ namespace Boinc
 
             //If Boinc is not running, we should start it, using parameters which indicate that our application
             //is responsible for managing Boinc. 
-            ProcessStartInfo processStartInfo = new ProcessStartInfo(BoincExecutableLocation, " --allow_remote_gui_rpc --detach_console --launched_by_manager");
+            ProcessStartInfo processStartInfo;
+
+            if (HideBoincWindow)
+            {
+                processStartInfo = new ProcessStartInfo(BoincExecutableLocation, " --allow_remote_gui_rpc --detach_console --launched_by_manager");
+            }
+            else
+            {
+                processStartInfo = new ProcessStartInfo(BoincExecutableLocation);
+            }
 
             //The CLI-Window of Boinc should be supressed. 
-            processStartInfo.CreateNoWindow = true;
-            processStartInfo.UseShellExecute = false;
-            processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+            if (HideBoincWindow)
+            {
+                processStartInfo.CreateNoWindow = true;
+                processStartInfo.UseShellExecute = false;
+                processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            }
+
+            if (BoincWorkingDirectory != null)
+            {
+                processStartInfo.WorkingDirectory = BoincWorkingDirectory;
+            }
 
             Process boinc = Process.Start(processStartInfo);
         }
@@ -1187,7 +1217,7 @@ namespace Boinc
             WriteRpc(QuitTag);
             Close();
 
-            if (boinc != null)
+            if (boinc != null && !boinc.HasExited)
             {
                 boinc.WaitForExit();
             }

@@ -108,6 +108,7 @@ namespace Boinc
             //If we read an error tag, something went terribly wrong. 
             if (reader.Name.ToLower() == ErrorTag)
             {
+                reader.Read();
                 throw new BoincApiException("Boinc error: " + reader.Value);
             } 
             

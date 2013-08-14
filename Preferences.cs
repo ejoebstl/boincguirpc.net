@@ -47,6 +47,7 @@ namespace Boinc
 
         /// <summary>
         /// Gets a float indicating the maxmimum percentage of processor cores to use.
+        /// <remarks>If this value is set, it has precedence over CpuCountLimit.</remarks>
         /// </summary>
         public float CpuCountPercentage { get; private set; }
 
@@ -59,7 +60,7 @@ namespace Boinc
         /// <param name="cpuUsageLimit">A float number indicating the cpu usage limit in percent.</param>
         /// <param name="diskUsageLimit">A float number indicating the maximum disk usage in gigabyte.</param>
         /// <param name="cpuCountLimit">An integer indicating the maxmimum count of processor cores to use.</param>
-        /// <param name="cpuCountPercentage">The percentage of cores to use, or -1 to auto-calculate this percentage specific to the local host from cpuCountLimit.</param>
+        /// <param name="cpuCountPercentage">The percentage of cores to use, or -1 to auto-calculate this percentage specific to the local host from cpuCountLimit. <remarks>If this value is set, it has precedence over cpuCountLimit.</remarks></param>
         public Preferences(bool runOnBatteries, bool useGpuIfUserActive, float cpuUsageLimit, float diskUsageLimit, int cpuCountLimit, float cpuCountPercentage = -1)
         {
             if (cpuUsageLimit < 0 || cpuUsageLimit > 100)

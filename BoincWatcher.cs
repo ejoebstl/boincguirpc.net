@@ -102,6 +102,13 @@ namespace Boinc
             Project[] projects = client.GetProjects();
             Result[] results = client.GetResults();
 
+            Project[] lastProjects = this.lastProjects;
+            Result[] lastResults = this.lastResults;
+
+            //Save the new information as state. 
+            this.lastProjects = projects;
+            this.lastResults = results;
+
             //If we have a known state, compare. 
             if (lastProjects != null)
             {
@@ -112,10 +119,6 @@ namespace Boinc
                 CompareArrays(lastResults, results, TaskRemoved, TaskAdded, CompareResult);
                 CompareResults(lastResults, results);
             }
-
-            //Save the new information as state. 
-            lastProjects = projects;
-            lastResults = results;
             
         }
 
@@ -127,24 +130,27 @@ namespace Boinc
         /// <param name="newValues">The new results. </param>
         private void CompareResults(Result[] oldValues, Result[] newValues)
         {
-            //Iterate over each old result. 
-            foreach (Result oldResult in oldValues)
+            if (TaskStateChanged != null)
             {
-                //Find the corresponding new result.
-                Result newResult = Array.Find(newValues, delegate(Result x) { return CompareResult(oldResult, x) == 0; });
-
-                //If we found a new result, compare the results. 
-                if(newResult != null) 
+                //Iterate over each old result. 
+                foreach (Result oldResult in oldValues)
                 {
-                    if(oldResult.Acknowledged != newResult.Acknowledged ||
-                       oldResult.CurrentCpuTime != newResult.CurrentCpuTime ||
-                       oldResult.FractionDone != newResult.FractionDone ||
-                       oldResult.IsActive != newResult.IsActive ||
-                       oldResult.ReadyToReport != newResult.ReadyToReport ||
-                       oldResult.EstimatedCpuTimeRemaining != newResult.EstimatedCpuTimeRemaining) 
+                    //Find the corresponding new result.
+                    Result newResult = Array.Find(newValues, delegate(Result x) { return CompareResult(oldResult, x) == 0; });
+
+                    //If we found a new result, compare the results. 
+                    if (newResult != null)
                     {
-                        //If the result was different, raise the event. 
-                        TaskStateChanged(this, new TaskStateChangedEventArgs(oldResult, newResult));
+                        if (oldResult.Acknowledged != newResult.Acknowledged ||
+                           oldResult.CurrentCpuTime != newResult.CurrentCpuTime ||
+                           oldResult.FractionDone != newResult.FractionDone ||
+                           oldResult.IsActive != newResult.IsActive ||
+                           oldResult.ReadyToReport != newResult.ReadyToReport ||
+                           oldResult.EstimatedCpuTimeRemaining != newResult.EstimatedCpuTimeRemaining)
+                        {
+                            //If the result was different, raise the event. 
+                            TaskStateChanged(this, new TaskStateChangedEventArgs(oldResult, newResult));
+                        }
                     }
                 }
             }
@@ -188,13 +194,19 @@ namespace Boinc
             List<T> removedValues = FindMissingValues(oldValues, newValues, compare);
 
             //Raise events. 
-            foreach (T val in addedValues)
+            if (addedHandler != null)
             {
-                addedHandler(this, new CollectionModifiedEventArgs<T>(val));
+                foreach (T val in addedValues)
+                {
+                    addedHandler(this, new CollectionModifiedEventArgs<T>(val));
+                }
             }
-            foreach (T val in removedValues)
+            if (removedHandler != null)
             {
-                removedHandler(this, new CollectionModifiedEventArgs<T>(val));
+                foreach (T val in removedValues)
+                {
+                    removedHandler(this, new CollectionModifiedEventArgs<T>(val));
+                }
             }
         }
 
