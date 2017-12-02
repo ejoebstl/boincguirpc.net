@@ -7,8 +7,7 @@ The project is intentionally implemented in .NET 2.0, so it can be easily run wi
 
 This example shows how basic Boinc functions can be accessed and called. 
 
-{code:c#}
-
+```csharp
 //Creates a new Boinc Gui RPC client for the local host 
 Boinc.BoincClient b = new Boinc.BoincClient();
 
@@ -49,13 +48,13 @@ b.SetPreferences(new Preferences(false, false, 50, 10, 1));
 
 //Closes the connection
 b.Close();
-{code:c#}
+```
 
 **Usage Example - Event Driven**
 
 This example shows how the BoincWatcher class can be used to work with Boinc using events for state changes. 
 
-{code:c#}
+```csharp
 BoincClient client;
 BoincWatcher watcher;
 
@@ -113,4 +112,4 @@ static void watcher_ProjectAdded(object sender, CollectionModifiedEventArgs<Proj
 {
       Console.WriteLine("Project Added: " + e.ModifiedItem.ProjectName);
 }
-{code:c#}
+```
